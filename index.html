@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>HEKSAA — Discover India Beyond Destinations</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- 3D BACKGROUND -->
+    <canvas id="three-canvas"></canvas>
+
+    <!-- DARK CINEMATIC OVERLAY -->
+    <div class="vignette"></div>
+
+    <!-- NAVIGATION -->
+    <header class="navbar">
+
+        <div class="logo">
+            <span class="logo-mark">H</span>
+            <span class="logo-text">HEKSAA</span>
+        </div>
+
+        <div class="nav-right">
+            <span>INDIA</span>
+            <span>EXPLORE</span>
+            <span>ABOUT</span>
+        </div>
+
+    </header>
+
+
+    <!-- HERO -->
+    <main class="hero">
+
+        <div class="hero-content">
+
+            <div class="eyebrow">
+                <span class="line"></span>
+                TOURISM INTELLIGENCE PLATFORM
+            </div>
+
+            <h1>
+                DISCOVER INDIA
+                <span>BEYOND DESTINATIONS</span>
+            </h1>
+
+            <p>
+                Experience India through intelligent journeys,
+                immersive destinations and a new dimension of tourism.
+            </p>
+
+            <button id="exploreBtn">
+                <span>EXPLORE INDIA</span>
+                <span class="arrow">→</span>
+            </button>
+
+        </div>
+
+    </main>
+
+
+    <!-- BOTTOM INFO -->
+    <div class="bottom-info">
+
+        <div>
+            <span class="small-label">POWERED BY</span>
+            <strong>AI • 3D • DATA</strong>
+        </div>
+
+        <div class="scroll-indicator">
+            <span>SCROLL TO EXPLORE</span>
+            <div class="scroll-line"></div>
+        </div>
+
+    </div>
+
+
+    <!-- THREE.JS -->
+    <script type="module"
+        src="https://unpkg.com/three@0.170.0/build/three.module.js">
+    </script>
+
+    <script type="module" src="script.js"></script>
+
+</body>
+</html>
