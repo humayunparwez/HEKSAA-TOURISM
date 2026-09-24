@@ -1,0 +1,330 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #030507;
+    color: white;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+
+/* =========================
+   3D CANVAS
+========================= */
+
+#three-canvas {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+}
+
+
+/* =========================
+   CINEMATIC VIGNETTE
+========================= */
+
+.vignette {
+    position: fixed;
+    inset: 0;
+
+    background:
+        radial-gradient(
+            circle at center,
+            transparent 25%,
+            rgba(0, 0, 0, 0.35) 65%,
+            rgba(0, 0, 0, 0.9) 100%
+        );
+
+    pointer-events: none;
+    z-index: 1;
+}
+
+
+/* =========================
+   NAVBAR
+========================= */
+
+.navbar {
+    position: fixed;
+
+    top: 0;
+    left: 0;
+    width: 100%;
+
+    padding: 28px 5vw;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    z-index: 10;
+}
+
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    letter-spacing: 5px;
+    font-weight: 700;
+}
+
+
+.logo-mark {
+    width: 34px;
+    height: 34px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border: 1px solid rgba(255,255,255,0.5);
+
+    font-size: 15px;
+}
+
+
+.logo-text {
+    font-size: 16px;
+}
+
+
+.nav-right {
+    display: flex;
+    gap: 30px;
+
+    font-size: 11px;
+    letter-spacing: 2px;
+
+    color: rgba(255,255,255,0.65);
+}
+
+
+/* =========================
+   HERO
+========================= */
+
+.hero {
+    position: relative;
+
+    width: 100%;
+    height: 100vh;
+
+    z-index: 5;
+
+    display: flex;
+    align-items: center;
+
+    padding-left: 8vw;
+}
+
+
+.hero-content {
+    width: min(700px, 85vw);
+}
+
+
+.eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    font-size: 10px;
+    letter-spacing: 3px;
+
+    color: rgba(255,255,255,0.55);
+
+    margin-bottom: 25px;
+}
+
+
+.line {
+    width: 35px;
+    height: 1px;
+
+    background: rgba(255,255,255,0.6);
+}
+
+
+h1 {
+    font-size: clamp(42px, 7vw, 100px);
+
+    line-height: 0.92;
+
+    letter-spacing: -3px;
+
+    font-weight: 500;
+}
+
+
+h1 span {
+    display: block;
+
+    color: rgba(255,255,255,0.42);
+}
+
+
+.hero-content p {
+    margin-top: 30px;
+
+    max-width: 500px;
+
+    font-size: 15px;
+    line-height: 1.7;
+
+    color: rgba(255,255,255,0.58);
+}
+
+
+/* =========================
+   BUTTON
+========================= */
+
+#exploreBtn {
+    margin-top: 38px;
+
+    padding: 15px 22px;
+
+    display: flex;
+    align-items: center;
+    gap: 30px;
+
+    background: rgba(255,255,255,0.06);
+
+    border: 1px solid rgba(255,255,255,0.3);
+
+    color: white;
+
+    font-size: 11px;
+    letter-spacing: 2px;
+
+    cursor: pointer;
+
+    backdrop-filter: blur(10px);
+
+    transition:
+        background 0.3s ease,
+        transform 0.3s ease;
+}
+
+
+#exploreBtn:hover {
+    background: rgba(255,255,255,0.14);
+
+    transform: translateX(5px);
+}
+
+
+.arrow {
+    font-size: 18px;
+}
+
+
+/* =========================
+   BOTTOM
+========================= */
+
+.bottom-info {
+    position: fixed;
+
+    left: 5vw;
+    right: 5vw;
+    bottom: 30px;
+
+    z-index: 10;
+
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+}
+
+
+.small-label {
+    display: block;
+
+    font-size: 8px;
+
+    letter-spacing: 2px;
+
+    color: rgba(255,255,255,0.4);
+
+    margin-bottom: 7px;
+}
+
+
+.bottom-info strong {
+    font-size: 10px;
+
+    letter-spacing: 2px;
+
+    font-weight: 400;
+}
+
+
+.scroll-indicator {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+
+    font-size: 8px;
+
+    letter-spacing: 2px;
+
+    color: rgba(255,255,255,0.4);
+}
+
+
+.scroll-line {
+    width: 50px;
+    height: 1px;
+
+    background: rgba(255,255,255,0.3);
+}
+
+
+/* =========================
+   MOBILE
+========================= */
+
+@media (max-width: 700px) {
+
+    .navbar {
+        padding: 22px 5vw;
+    }
+
+    .nav-right {
+        display: none;
+    }
+
+    .hero {
+        padding-left: 6vw;
+        padding-right: 6vw;
+    }
+
+    h1 {
+        font-size: clamp(42px, 12vw, 70px);
+    }
+
+    .hero-content p {
+        font-size: 13px;
+    }
+
+    .bottom-info {
+        bottom: 20px;
+    }
+
+    .scroll-indicator {
+        display: none;
+    }
+
+}
