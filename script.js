@@ -1,48 +1,40 @@
 import * as THREE from
 "https://unpkg.com/three@0.170.0/build/three.module.js";
 
-import {
-    feature
-} from
-"https://cdn.jsdelivr.net/npm/topojson-client@3/+esm";
-
-
 /* =====================================================
-   HEKSAA — 3D INDIA
+   HEKSAA — CINEMATIC HIMALAYAN HERO
+   100% CODE GENERATED
 ===================================================== */
 
-const canvas =
-    document.getElementById("three-canvas");
-
+const canvas = document.getElementById("three-canvas");
 
 /* =====================================================
    SCENE
 ===================================================== */
 
-const scene =
-    new THREE.Scene();
+const scene = new THREE.Scene();
 
-scene.background =
-    new THREE.Color(0x030507);
+scene.fog = new THREE.FogExp2(
+    0x8da0ad,
+    0.018
+);
 
 
 /* =====================================================
    CAMERA
 ===================================================== */
 
-const camera =
-    new THREE.PerspectiveCamera(
-        42,
-        window.innerWidth /
-        window.innerHeight,
-        0.1,
-        1000
-    );
+const camera = new THREE.PerspectiveCamera(
+    55,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    1000
+);
 
 camera.position.set(
     0,
-    0,
-    8
+    3.2,
+    18
 );
 
 
@@ -50,19 +42,15 @@ camera.position.set(
    RENDERER
 ===================================================== */
 
-const renderer =
-    new THREE.WebGLRenderer({
-        canvas: canvas,
-        antialias: true,
-        alpha: true,
-        powerPreference: "high-performance"
-    });
+const renderer = new THREE.WebGLRenderer({
+    canvas: canvas,
+    antialias: true,
+    alpha: true,
+    powerPreference: "high-performance"
+});
 
 renderer.setPixelRatio(
-    Math.min(
-        window.devicePixelRatio,
-        1.5
-    )
+    Math.min(window.devicePixelRatio, 2)
 );
 
 renderer.setSize(
@@ -70,512 +58,775 @@ renderer.setSize(
     window.innerHeight
 );
 
+renderer.outputColorSpace =
+    THREE.SRGBColorSpace;
+
+renderer.toneMapping =
+    THREE.ACESFilmicToneMapping;
+
+renderer.toneMappingExposure = 1.15;
+
 
 /* =====================================================
    LIGHTING
 ===================================================== */
 
-const ambientLight =
-    new THREE.AmbientLight(
-        0xffffff,
-        0.65
-    );
-
-scene.add(ambientLight);
-
-
-const keyLight =
-    new THREE.DirectionalLight(
-        0xffffff,
-        2.5
-    );
-
-keyLight.position.set(
-    -4,
-    5,
-    6
+const ambient = new THREE.HemisphereLight(
+    0xcfe5ff,
+    0x182026,
+    1.8
 );
 
-scene.add(keyLight);
+scene.add(ambient);
 
 
-const rimLight =
-    new THREE.PointLight(
-        0x8fb8ff,
-        8,
-        20
-    );
-
-rimLight.position.set(
-    3,
-    -2,
+const sun = new THREE.DirectionalLight(
+    0xffe7c2,
     4
 );
 
-scene.add(rimLight);
-
-
-/* =====================================================
-   INDIA GROUP
-===================================================== */
-
-const indiaGroup =
-    new THREE.Group();
-
-indiaGroup.position.set(
-    2.4,
-    0.2,
-    -1
+sun.position.set(
+    -12,
+    18,
+    8
 );
 
-indiaGroup.rotation.z =
-    THREE.MathUtils.degToRad(-3);
-
-scene.add(indiaGroup);
+scene.add(sun);
 
 
 /* =====================================================
-   GEOJSON → THREE SHAPE
+   SKY
 ===================================================== */
 
-function convertRing(
-    ring,
-    centerLon,
-    centerLat,
-    scale
+const skyGeometry =
+    new THREE.SphereGeometry(
+        120,
+        32,
+        32
+    );
+
+const skyMaterial =
+    new THREE.ShaderMaterial({
+
+        side: THREE.BackSide,
+
+        uniforms: {
+
+            topColor: {
+                value: new THREE.Color(
+                    0x102b48
+                )
+            },
+
+            horizonColor: {
+                value: new THREE.Color(
+                    0xd9c9ad
+                )
+            },
+
+            bottomColor: {
+                value: new THREE.Color(
+                    0x26323a
+                )
+            }
+
+        },
+
+        vertexShader: `
+
+            varying vec3 vWorldPosition;
+
+            void main() {
+
+                vec4 worldPosition =
+                    modelMatrix *
+                    vec4(position, 1.0);
+
+                vWorldPosition =
+                    worldPosition.xyz;
+
+                gl_Position =
+                    projectionMatrix *
+                    modelViewMatrix *
+                    vec4(position, 1.0);
+
+            }
+
+        `,
+
+        fragmentShader: `
+
+            uniform vec3 topColor;
+            uniform vec3 horizonColor;
+            uniform vec3 bottomColor;
+
+            varying vec3 vWorldPosition;
+
+            void main() {
+
+                float height =
+                    normalize(vWorldPosition).y;
+
+                vec3 color;
+
+                if(height > 0.0) {
+
+                    color =
+                        mix(
+                            horizonColor,
+                            topColor,
+                            smoothstep(
+                                0.0,
+                                0.8,
+                                height
+                            )
+                        );
+
+                } else {
+
+                    color =
+                        mix(
+                            horizonColor,
+                            bottomColor,
+                            smoothstep(
+                                0.0,
+                                -0.5,
+                                height
+                            )
+                        );
+
+                }
+
+                gl_FragColor =
+                    vec4(color, 1.0);
+
+            }
+
+        `
+
+    });
+
+const sky =
+    new THREE.Mesh(
+        skyGeometry,
+        skyMaterial
+    );
+
+scene.add(sky);
+
+
+/* =====================================================
+   SIMPLE PROCEDURAL NOISE
+===================================================== */
+
+function noise(x, z) {
+
+    const value =
+        Math.sin(x * 0.75) *
+        Math.cos(z * 0.55) +
+
+        Math.sin(
+            x * 1.7 +
+            z * 0.8
+        ) * 0.45 +
+
+        Math.cos(
+            x * 2.8 -
+            z * 1.4
+        ) * 0.18;
+
+    return value;
+}
+
+
+/* =====================================================
+   MOUNTAIN CREATOR
+===================================================== */
+
+function createMountain(
+    x,
+    z,
+    width,
+    height,
+    rotation,
+    detail
 ) {
 
-    const points = [];
+    const geometry =
+        new THREE.ConeGeometry(
+            width,
+            height,
+            detail,
+            30
+        );
+
+
+    /* deform vertices */
+
+    const position =
+        geometry.attributes.position;
+
 
     for (
         let i = 0;
-        i < ring.length;
+        i < position.count;
         i++
     ) {
 
-        const lon =
-            ring[i][0];
+        const vx =
+            position.getX(i);
 
-        const lat =
-            ring[i][1];
+        const vy =
+            position.getY(i);
 
-
-        const x =
-            (lon - centerLon) *
-            scale;
-
-        const y =
-            (lat - centerLat) *
-            scale;
+        const vz =
+            position.getZ(i);
 
 
-        points.push(
-            new THREE.Vector2(
-                x,
-                y
-            )
-        );
-    }
-
-    return points;
-}
-
-
-/* =====================================================
-   CREATE INDIA
-===================================================== */
-
-async function createIndia() {
-
-    try {
-
-        const response =
-            await fetch(
-                "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json"
-            );
-
-        const topology =
-            await response.json();
-
-
-        /*
-         * Country ID 356 = India
-         */
-
-        const countries =
-            feature(
-                topology,
-                topology.objects.countries
+        const variation =
+            noise(
+                vx * 1.4,
+                vz * 1.4
             );
 
 
-        const indiaFeature =
-            countries.features.find(
-                country =>
-                    Number(country.id) === 356
+        const factor =
+            Math.max(
+                0,
+                (vy / height) + 0.5
             );
 
 
-        if (!indiaFeature) {
-
-            console.error(
-                "India geometry not found."
-            );
-
-            return;
-        }
-
-
-        const geometry =
-            indiaFeature.geometry;
-
-
-        const centerLon = 78;
-
-        const centerLat = 22;
-
-        const scale = 0.075;
-
-
-        /* =============================================
-           HANDLE POLYGON / MULTIPOLYGON
-        ============================================= */
-
-        let polygons = [];
-
-
-        if (
-            geometry.type ===
-            "Polygon"
-        ) {
-
-            polygons.push(
-                geometry.coordinates
-            );
-
-        }
-
-
-        if (
-            geometry.type ===
-            "MultiPolygon"
-        ) {
-
-            polygons =
-                geometry.coordinates;
-        }
-
-
-        polygons.forEach(
-            polygon => {
-
-                const outerRing =
-                    polygon[0];
-
-
-                const shape =
-                    new THREE.Shape();
-
-
-                const points =
-                    convertRing(
-                        outerRing,
-                        centerLon,
-                        centerLat,
-                        scale
-                    );
-
-
-                if (
-                    points.length === 0
-                ) {
-                    return;
-                }
-
-
-                shape.moveTo(
-                    points[0].x,
-                    points[0].y
-                );
-
-
-                for (
-                    let i = 1;
-                    i < points.length;
-                    i++
-                ) {
-
-                    shape.lineTo(
-                        points[i].x,
-                        points[i].y
-                    );
-
-                }
-
-
-                shape.closePath();
-
-
-                /* =====================================
-                   3D EXTRUSION
-                ===================================== */
-
-                const extrudeSettings = {
-
-                    depth: 0.18,
-
-                    bevelEnabled: true,
-
-                    bevelSegments: 2,
-
-                    bevelSize: 0.025,
-
-                    bevelThickness: 0.025
-
-                };
-
-
-                const geometry3D =
-                    new THREE.ExtrudeGeometry(
-                        shape,
-                        extrudeSettings
-                    );
-
-
-                geometry3D.center();
-
-
-                const material =
-                    new THREE.MeshStandardMaterial({
-
-                        color:
-                            0x16202b,
-
-                        metalness:
-                            0.75,
-
-                        roughness:
-                            0.28,
-
-                        transparent:
-                            true,
-
-                        opacity:
-                            0.95
-
-                    });
-
-
-                const mesh =
-                    new THREE.Mesh(
-                        geometry3D,
-                        material
-                    );
-
-
-                indiaGroup.add(
-                    mesh
-                );
-
-
-                /* =====================================
-                   GLOWING WIREFRAME
-                ===================================== */
-
-                const edges =
-                    new THREE.EdgesGeometry(
-                        geometry3D
-                    );
-
-
-                const edgeMaterial =
-                    new THREE.LineBasicMaterial({
-
-                        color:
-                            0x7897b5,
-
-                        transparent:
-                            true,
-
-                        opacity:
-                            0.45
-
-                    });
-
-
-                const edgeLines =
-                    new THREE.LineSegments(
-                        edges,
-                        edgeMaterial
-                    );
-
-
-                indiaGroup.add(
-                    edgeLines
-                );
-
-            }
+        position.setX(
+            i,
+            vx +
+            variation *
+            0.18 *
+            factor
         );
 
 
-        /* =============================================
-           INDIA GLOW
-        ============================================= */
-
-        const glowGeometry =
-            new THREE.CircleGeometry(
-                2.3,
-                64
-            );
-
-
-        const glowMaterial =
-            new THREE.MeshBasicMaterial({
-
-                color:
-                    0x315b80,
-
-                transparent:
-                    true,
-
-                opacity:
-                    0.055,
-
-                side:
-                    THREE.DoubleSide
-
-            });
-
-
-        const glow =
-            new THREE.Mesh(
-                glowGeometry,
-                glowMaterial
-            );
-
-
-        glow.position.z =
-            -0.15;
-
-
-        indiaGroup.add(
-            glow
-        );
-
-
-        console.log(
-            "HEKSAA 3D INDIA LOADED"
-        );
-
-
-    } catch (error) {
-
-        console.error(
-            "Could not load India:",
-            error
+        position.setZ(
+            i,
+            vz +
+            variation *
+            0.18 *
+            factor
         );
 
     }
 
+
+    geometry.computeVertexNormals();
+
+
+    const material =
+        new THREE.MeshStandardMaterial({
+
+            color:
+                0x46525a,
+
+            roughness:
+                0.92,
+
+            metalness:
+                0.02
+
+        });
+
+
+    const mountain =
+        new THREE.Mesh(
+            geometry,
+            material
+        );
+
+
+    mountain.position.set(
+        x,
+        height / 2 - 1,
+        z
+    );
+
+
+    mountain.rotation.y =
+        rotation;
+
+
+    mountain.scale.y =
+        1.0;
+
+
+    scene.add(
+        mountain
+    );
+
+
+    /* ===============================
+       SNOW CAP
+    =============================== */
+
+    const snowGeometry =
+        new THREE.ConeGeometry(
+            width * 0.42,
+            height * 0.34,
+            detail,
+            12
+        );
+
+
+    const snowMaterial =
+        new THREE.MeshStandardMaterial({
+
+            color:
+                0xf1f4f3,
+
+            roughness:
+                0.88,
+
+            metalness:
+                0.0
+
+        });
+
+
+    const snow =
+        new THREE.Mesh(
+            snowGeometry,
+            snowMaterial
+        );
+
+
+    snow.position.set(
+        x,
+        height * 0.82,
+        z - 0.02
+    );
+
+
+    snow.rotation.y =
+        rotation;
+
+
+    scene.add(
+        snow
+    );
+
+
+    return mountain;
 }
 
 
 /* =====================================================
-   PARTICLES
+   BACK MOUNTAINS
 ===================================================== */
 
-const particleCount =
-    window.innerWidth < 700
-        ? 900
+createMountain(
+    -12,
+    -18,
+    9,
+    13,
+    0.4,
+    9
+);
+
+createMountain(
+    -5,
+    -22,
+    11,
+    17,
+    -0.3,
+    10
+);
+
+createMountain(
+    4,
+    -25,
+    13,
+    20,
+    0.2,
+    10
+);
+
+createMountain(
+    13,
+    -20,
+    10,
+    15,
+    -0.2,
+    9
+);
+
+
+/* =====================================================
+   MID MOUNTAINS
+===================================================== */
+
+createMountain(
+    -10,
+    -8,
+    7,
+    10,
+    0.5,
+    8
+);
+
+createMountain(
+    -3,
+    -11,
+    8,
+    13,
+    -0.4,
+    8
+);
+
+createMountain(
+    6,
+    -10,
+    9,
+    15,
+    0.3,
+    8
+);
+
+createMountain(
+    13,
+    -7,
+    7,
+    11,
+    -0.5,
+    8
+);
+
+
+/* =====================================================
+   FOREGROUND TERRAIN
+===================================================== */
+
+const terrainWidth = 45;
+const terrainDepth = 45;
+
+const terrainGeometry =
+    new THREE.PlaneGeometry(
+        terrainWidth,
+        terrainDepth,
+        80,
+        80
+    );
+
+
+const terrainPosition =
+    terrainGeometry.attributes.position;
+
+
+for (
+    let i = 0;
+    i < terrainPosition.count;
+    i++
+) {
+
+    const x =
+        terrainPosition.getX(i);
+
+    const y =
+        terrainPosition.getY(i);
+
+
+    const elevation =
+        noise(
+            x * 0.35,
+            y * 0.35
+        ) * 1.1;
+
+
+    terrainPosition.setZ(
+        i,
+        elevation
+    );
+
+}
+
+
+terrainGeometry.computeVertexNormals();
+
+terrainGeometry.rotateX(
+    -Math.PI / 2
+);
+
+
+const terrainMaterial =
+    new THREE.MeshStandardMaterial({
+
+        color:
+            0x29352f,
+
+        roughness:
+            0.98,
+
+        metalness:
+            0.0
+
+    });
+
+
+const terrain =
+    new THREE.Mesh(
+        terrainGeometry,
+        terrainMaterial
+    );
+
+
+terrain.position.y =
+    -1.2;
+
+terrain.position.z =
+    4;
+
+
+scene.add(
+    terrain
+);
+
+
+/* =====================================================
+   VALLEY PATH
+===================================================== */
+
+const roadShape =
+    new THREE.Shape();
+
+
+roadShape.moveTo(
+    -1.0,
+    -18
+);
+
+roadShape.bezierCurveTo(
+    -0.5,
+    -8,
+    2.2,
+    0,
+    0.5,
+    10
+);
+
+roadShape.bezierCurveTo(
+    0.0,
+    14,
+    -1.0,
+    17,
+    -2.0,
+    20
+);
+
+
+const roadGeometry =
+    new THREE.ShapeGeometry(
+        roadShape
+    );
+
+
+const roadMaterial =
+    new THREE.MeshStandardMaterial({
+
+        color:
+            0x353a3b,
+
+        roughness:
+            0.85,
+
+        metalness:
+            0.05
+
+    });
+
+
+const road =
+    new THREE.Mesh(
+        roadGeometry,
+        roadMaterial
+    );
+
+
+road.rotation.x =
+    -Math.PI / 2;
+
+road.position.y =
+    -0.82;
+
+road.position.z =
+    -1;
+
+road.scale.set(
+    1.5,
+    1,
+    1
+);
+
+scene.add(
+    road
+);
+
+
+/* =====================================================
+   SNOW PARTICLES
+===================================================== */
+
+const snowCount =
+    window.innerWidth < 900
+        ? 700
         : 1600;
 
 
-const particleGeometry =
-    new THREE.BufferGeometry();
-
-
-const positions =
+const snowPositions =
     new Float32Array(
-        particleCount * 3
+        snowCount * 3
     );
 
 
 for (
     let i = 0;
-    i < particleCount * 3;
+    i < snowCount * 3;
     i += 3
 ) {
 
-    positions[i] =
-        (Math.random() - 0.5) *
-        18;
+    snowPositions[i] =
+        (Math.random() - 0.5) * 35;
 
-    positions[i + 1] =
-        (Math.random() - 0.5) *
-        10;
+    snowPositions[i + 1] =
+        Math.random() * 20;
 
-    positions[i + 2] =
-        (Math.random() - 0.5) *
-        12;
+    snowPositions[i + 2] =
+        (Math.random() - 0.5) * 30;
 
 }
 
 
-particleGeometry.setAttribute(
+const snowGeometry =
+    new THREE.BufferGeometry();
+
+
+snowGeometry.setAttribute(
     "position",
     new THREE.BufferAttribute(
-        positions,
+        snowPositions,
         3
     )
 );
 
 
-const particleMaterial =
+const snowMaterialParticles =
     new THREE.PointsMaterial({
 
         color:
             0xffffff,
 
         size:
-            window.innerWidth < 700
-                ? 0.018
-                : 0.025,
+            0.035,
 
         transparent:
             true,
 
         opacity:
-            0.5
+            0.75,
+
+        depthWrite:
+            false
 
     });
 
 
-const particles =
+const snowParticles =
     new THREE.Points(
-        particleGeometry,
-        particleMaterial
+        snowGeometry,
+        snowMaterialParticles
     );
 
 
 scene.add(
-    particles
+    snowParticles
 );
 
 
 /* =====================================================
-   TOUCH / MOUSE
+   ATMOSPHERIC CLOUDS
 ===================================================== */
 
-let targetX = 0;
+const cloudMaterial =
+    new THREE.MeshBasicMaterial({
 
-let targetY = 0;
+        color:
+            0xffffff,
+
+        transparent:
+            true,
+
+        opacity:
+            0.075,
+
+        depthWrite:
+            false
+
+    });
+
+
+for (
+    let i = 0;
+    i < 18;
+    i++
+) {
+
+    const cloud =
+        new THREE.Mesh(
+            new THREE.SphereGeometry(
+                2 +
+                Math.random() * 3,
+                16,
+                10
+            ),
+            cloudMaterial
+        );
+
+
+    cloud.scale.set(
+        2.5,
+        0.45,
+        1.0
+    );
+
+
+    cloud.position.set(
+        (Math.random() - 0.5) * 35,
+        7 +
+        Math.random() * 8,
+        -15 -
+        Math.random() * 15
+    );
+
+
+    scene.add(
+        cloud
+    );
+
+}
+
+
+/* =====================================================
+   CAMERA MOUSE MOVEMENT
+===================================================== */
+
+let mouseX = 0;
+let mouseY = 0;
+
+let targetMouseX = 0;
+let targetMouseY = 0;
 
 
 window.addEventListener(
     "pointermove",
-    event => {
+    (event) => {
 
-        targetX =
+        targetMouseX =
             (
                 event.clientX /
                 window.innerWidth -
@@ -583,7 +834,7 @@ window.addEventListener(
             ) * 2;
 
 
-        targetY =
+        targetMouseY =
             (
                 event.clientY /
                 window.innerHeight -
@@ -595,7 +846,7 @@ window.addEventListener(
 
 
 /* =====================================================
-   ANIMATION
+   CINEMATIC CAMERA
 ===================================================== */
 
 const clock =
@@ -613,71 +864,89 @@ function animate() {
         clock.getElapsedTime();
 
 
-    /* INDIA ROTATION */
+    /* smooth mouse */
 
-    indiaGroup.rotation.y +=
-        0.0015;
-
-
-    indiaGroup.rotation.x +=
+    mouseX +=
         (
-            targetY * 0.05 -
-            indiaGroup.rotation.x
+            targetMouseX -
+            mouseX
         ) * 0.025;
 
 
-    indiaGroup.rotation.z +=
+    mouseY +=
         (
-            -3 *
-            Math.PI /
-            180 +
-            targetX * 0.08 -
-            indiaGroup.rotation.z
+            targetMouseY -
+            mouseY
         ) * 0.025;
 
 
-    /* FLOATING */
+    /* camera movement */
 
-    indiaGroup.position.y =
-        0.2 +
+    camera.position.x =
+        mouseX * 1.2;
+
+
+    camera.position.y =
+        3.0 -
+        mouseY * 0.5 +
         Math.sin(
-            time * 0.8
-        ) * 0.06;
+            time * 0.18
+        ) * 0.15;
 
 
-    /* PARTICLES */
-
-    particles.rotation.y =
-        time * 0.008;
-
-
-    particles.rotation.x =
+    camera.position.z =
+        18 -
         Math.sin(
-            time * 0.1
-        ) * 0.02;
-
-
-    /* CAMERA PARALLAX */
-
-    camera.position.x +=
-        (
-            targetX * 0.25 -
-            camera.position.x
-        ) * 0.02;
-
-
-    camera.position.y +=
-        (
-            -targetY * 0.15 -
-            camera.position.y
-        ) * 0.02;
+            time * 0.12
+        ) * 1.5;
 
 
     camera.lookAt(
         0,
-        0,
-        0
+        4,
+        -8
     );
+
+
+    /* snow movement */
+
+    snowParticles.rotation.y =
+        time * 0.015;
+
+
+    const snowPosition =
+        snowParticles.geometry
+            .attributes
+            .position;
+
+
+    for (
+        let i = 0;
+        i < snowCount;
+        i++
+    ) {
+
+        let y =
+            snowPosition.getY(i * 3);
+
+        y -= 0.012;
+
+
+        if (y < -1) {
+            y = 18;
+        }
+
+
+        snowPosition.setY(
+            i * 3,
+            y
+        );
+
+    }
+
+
+    snowPosition.needsUpdate =
+        true;
 
 
     renderer.render(
@@ -689,13 +958,6 @@ function animate() {
 
 
 animate();
-
-
-/* =====================================================
-   LOAD INDIA
-===================================================== */
-
-createIndia();
 
 
 /* =====================================================
@@ -723,7 +985,7 @@ window.addEventListener(
         renderer.setPixelRatio(
             Math.min(
                 window.devicePixelRatio,
-                1.5
+                2
             )
         );
 
@@ -741,38 +1003,19 @@ const exploreButton =
     );
 
 
-exploreButton.addEventListener(
-    "click",
-    () => {
+if (exploreButton) {
 
-        exploreButton.innerHTML =
-            `
-            <span>ENTERING INDIA</span>
-            <span class="arrow">→</span>
-            `;
+    exploreButton.addEventListener(
+        "click",
+        () => {
 
+            exploreButton.innerHTML =
+                `
+                <span>ENTERING INDIA</span>
+                <span class="arrow">→</span>
+                `;
 
-        indiaGroup.scale.set(
-            1.2,
-            1.2,
-            1.2
-        );
+        }
+    );
 
-
-        camera.position.z =
-            6;
-
-
-        setTimeout(
-            () => {
-
-                alert(
-                    "INDIA EXPLORER — NEXT STAGE"
-                );
-
-            },
-            1000
-        );
-
-    }
-);
+        }
