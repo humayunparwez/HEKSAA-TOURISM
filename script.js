@@ -4,11 +4,9 @@ import * as THREE from
 
 /* =========================================================
    HEKSAA
-   DISCOVER INDIA BEYOND DESTINATIONS
-
-   CONTINUOUS PROCEDURAL HIMALAYAN TERRAIN
+   CINEMATIC HIMALAYAN TERRAIN
+   VERSION 3
 ========================================================= */
-
 
 const canvas =
     document.getElementById("three-canvas");
@@ -22,23 +20,35 @@ const scene =
     new THREE.Scene();
 
 
+scene.background =
+    new THREE.Color(0x07111a);
+
+
+scene.fog =
+    new THREE.FogExp2(
+        0x70818b,
+        0.010
+    );
+
+
 /* =========================================================
    CAMERA
 ========================================================= */
 
 const camera =
     new THREE.PerspectiveCamera(
-        52,
+        55,
         window.innerWidth /
         window.innerHeight,
         0.1,
         500
     );
 
+
 camera.position.set(
     0,
-    5.5,
-    24
+    5,
+    22
 );
 
 
@@ -48,15 +58,22 @@ camera.position.set(
 
 const renderer =
     new THREE.WebGLRenderer({
+
         canvas: canvas,
+
         antialias: true,
-        powerPreference: "high-performance"
+
+        powerPreference:
+            "high-performance"
+
     });
+
 
 renderer.setSize(
     window.innerWidth,
     window.innerHeight
 );
+
 
 renderer.setPixelRatio(
     Math.min(
@@ -65,67 +82,62 @@ renderer.setPixelRatio(
     )
 );
 
+
 renderer.outputColorSpace =
     THREE.SRGBColorSpace;
 
+
 renderer.toneMapping =
     THREE.ACESFilmicToneMapping;
+
 
 renderer.toneMappingExposure =
     1.15;
 
 
 /* =========================================================
-   ATMOSPHERE
-========================================================= */
-
-scene.fog =
-    new THREE.FogExp2(
-        0x788895,
-        0.012
-    );
-
-
-/* =========================================================
    LIGHTING
 ========================================================= */
 
-const hemisphere =
+const skyLight =
     new THREE.HemisphereLight(
-        0xc9dded,
-        0x17211e,
-        2.0
+        0xbdd5e8,
+        0x18221f,
+        2.1
     );
 
+
 scene.add(
-    hemisphere
+    skyLight
 );
 
 
-const sunlight =
+const sun =
     new THREE.DirectionalLight(
-        0xffdfb0,
+        0xffdfb1,
         4.5
     );
 
-sunlight.position.set(
-    -25,
-    35,
+
+sun.position.set(
+    -30,
+    40,
     15
 );
 
+
 scene.add(
-    sunlight
+    sun
 );
 
 
 /* =========================================================
-   SKY
+   SKY DOME
 ========================================================= */
 
 const skyGeometry =
     new THREE.SphereGeometry(
-        180,
+        160,
         48,
         32
     );
@@ -134,69 +146,79 @@ const skyGeometry =
 const skyMaterial =
     new THREE.ShaderMaterial({
 
-        side: THREE.BackSide,
+        side:
+            THREE.BackSide,
 
         uniforms: {
 
-            topColor: {
+            top:
+            {
                 value:
                     new THREE.Color(
-                        0x061626
+                        0x061525
                     )
             },
 
-            middleColor: {
+            middle:
+            {
                 value:
                     new THREE.Color(
-                        0x29445b
+                        0x315064
                     )
             },
 
-            horizonColor: {
+            horizon:
+            {
                 value:
                     new THREE.Color(
-                        0xb8ad9c
+                        0xc3b9a7
                     )
             }
 
         },
 
+
         vertexShader: `
 
-            varying vec3 vWorldPosition;
+            varying vec3 vPos;
 
             void main() {
 
-                vec4 worldPosition =
+                vec4 world =
                     modelMatrix *
-                    vec4(position, 1.0);
+                    vec4(
+                        position,
+                        1.0
+                    );
 
-                vWorldPosition =
-                    worldPosition.xyz;
+                vPos =
+                    world.xyz;
 
                 gl_Position =
                     projectionMatrix *
                     modelViewMatrix *
-                    vec4(position, 1.0);
+                    vec4(
+                        position,
+                        1.0
+                    );
 
             }
 
         `,
 
+
         fragmentShader: `
 
-            uniform vec3 topColor;
-            uniform vec3 middleColor;
-            uniform vec3 horizonColor;
+            uniform vec3 top;
+            uniform vec3 middle;
+            uniform vec3 horizon;
 
-            varying vec3 vWorldPosition;
+            varying vec3 vPos;
 
             void main() {
 
                 float h =
-                    normalize(
-                        vWorldPosition
-                    ).y;
+                    normalize(vPos).y;
 
                 vec3 color;
 
@@ -204,8 +226,8 @@ const skyMaterial =
 
                     color =
                         mix(
-                            middleColor,
-                            topColor,
+                            middle,
+                            top,
                             smoothstep(
                                 0.08,
                                 0.82,
@@ -217,10 +239,10 @@ const skyMaterial =
 
                     color =
                         mix(
-                            horizonColor,
-                            middleColor,
+                            horizon,
+                            middle,
                             smoothstep(
-                                -0.18,
+                                -0.20,
                                 0.08,
                                 h
                             )
@@ -241,673 +263,440 @@ const skyMaterial =
     });
 
 
-const sky =
+scene.add(
     new THREE.Mesh(
         skyGeometry,
         skyMaterial
-    );
-
-scene.add(
-    sky
-);
-
-
-/* =========================================================
-   DETERMINISTIC NOISE
-========================================================= */
-
-function hash(
-    x,
-    y
-) {
-
-    const value =
-        Math.sin(
-            x * 127.1 +
-            y * 311.7
-        ) *
-        43758.5453123;
-
-    return value -
-        Math.floor(value);
-
-}
-
-
-function smoothStep(
-    t
-) {
-
-    return (
-        t *
-        t *
-        (
-            3 -
-            2 * t
-        )
-    );
-
-}
-
-
-function valueNoise(
-    x,
-    y
-) {
-
-    const x0 =
-        Math.floor(x);
-
-    const y0 =
-        Math.floor(y);
-
-    const x1 =
-        x0 + 1;
-
-    const y1 =
-        y0 + 1;
-
-
-    const sx =
-        smoothStep(
-            x - x0
-        );
-
-    const sy =
-        smoothStep(
-            y - y0
-        );
-
-
-    const n00 =
-        hash(
-            x0,
-            y0
-        );
-
-    const n10 =
-        hash(
-            x1,
-            y0
-        );
-
-    const n01 =
-        hash(
-            x0,
-            y1
-        );
-
-    const n11 =
-        hash(
-            x1,
-            y1
-        );
-
-
-    const nx0 =
-        THREE.MathUtils.lerp(
-            n00,
-            n10,
-            sx
-        );
-
-    const nx1 =
-        THREE.MathUtils.lerp(
-            n01,
-            n11,
-            sx
-        );
-
-
-    return THREE.MathUtils.lerp(
-        nx0,
-        nx1,
-        sy
-    ) * 2 - 1;
-
-}
-
-
-/* =========================================================
-   FRACTAL TERRAIN NOISE
-========================================================= */
-
-function terrainNoise(
-    x,
-    z
-) {
-
-    let value = 0;
-
-    let amplitude = 1;
-
-    let frequency = 0.012;
-
-    let totalAmplitude = 0;
-
-
-    for (
-        let i = 0;
-        i < 5;
-        i++
-    ) {
-
-        value +=
-            valueNoise(
-                x * frequency,
-                z * frequency
-            ) *
-            amplitude;
-
-        totalAmplitude +=
-            amplitude;
-
-        amplitude *= 0.5;
-
-        frequency *= 2.0;
-
-    }
-
-
-    return (
-        value /
-        totalAmplitude
-    );
-
-}
-
-
-/* =========================================================
-   RIDGED MOUNTAIN NOISE
-========================================================= */
-
-function ridgeNoise(
-    x,
-    z
-) {
-
-    let value = 0;
-
-    let amplitude = 1;
-
-    let frequency = 0.018;
-
-    let total = 0;
-
-
-    for (
-        let i = 0;
-        i < 4;
-        i++
-    ) {
-
-        const n =
-            valueNoise(
-                x * frequency,
-                z * frequency
-            );
-
-
-        const ridge =
-            1 -
-            Math.abs(n);
-
-
-        value +=
-            ridge *
-            amplitude;
-
-        total +=
-            amplitude;
-
-        amplitude *= 0.5;
-
-        frequency *= 2.0;
-
-    }
-
-
-    return (
-        value /
-        total
-    );
-
-}
-
-
-/* =========================================================
-   HEIGHT FUNCTION
-========================================================= */
-
-function getTerrainHeight(
-    x,
-    z
-) {
-
-    /*
-     * Large continental shape
-     */
-
-    const large =
-        terrainNoise(
-            x * 0.65,
-            z * 0.65
-        );
-
-
-    /*
-     * Mountain ridges
-     */
-
-    const ridges =
-        ridgeNoise(
-            x,
-            z
-        );
-
-
-    /*
-     * Directional Himalayan ridges
-     */
-
-    const ridgeDirection =
-        Math.sin(
-            z * 0.045 +
-            x * 0.018
-        );
-
-
-    const directional =
-        Math.abs(
-            ridgeDirection
-        );
-
-
-    /*
-     * Valleys
-     */
-
-    const valley =
-        Math.sin(
-            x * 0.055 +
-            z * 0.018
-        );
-
-
-    /*
-     * Combine terrain
-     */
-
-    let height =
-        large * 2.2;
-
-
-    height +=
-        ridges *
-        9.5;
-
-
-    height +=
-        directional *
-        5.5;
-
-
-    height +=
-        valley *
-        1.4;
-
-
-    /*
-     * distant terrain
-     */
-
-    const distance =
-        Math.sqrt(
-            x * x +
-            z * z
-        );
-
-
-    const distant =
-        THREE.MathUtils.clamp(
-            distance / 55,
-            0,
-            1
-        );
-
-
-    height *=
-        0.92 +
-        distant * 0.28;
-
-
-    /*
-     * Keep valley floor low
-     */
-
-    return height - 3.5;
-
-}
-
-
-/* =========================================================
-   TERRAIN
-========================================================= */
-
-const terrainSize =
-    110;
-
-const terrainSegments =
-    150;
-
-
-const terrainGeometry =
-    new THREE.PlaneGeometry(
-        terrainSize,
-        terrainSize,
-        terrainSegments,
-        terrainSegments
-    );
-
-
-const position =
-    terrainGeometry.attributes.position;
-
-
-/* =========================================================
-   CREATE TERRAIN HEIGHT
-========================================================= */
-
-for (
-    let i = 0;
-    i < position.count;
-    i++
-) {
-
-    const x =
-        position.getX(i);
-
-    const y =
-        position.getY(i);
-
-
-    const height =
-        getTerrainHeight(
-            x,
-            y
-        );
-
-
-    position.setZ(
-        i,
-        height
-    );
-
-}
-
-
-/* =========================================================
-   TERRAIN NORMALS
-========================================================= */
-
-terrainGeometry.computeVertexNormals();
-
-
-/* =========================================================
-   TERRAIN COLORS
-========================================================= */
-
-const colors =
-    new Float32Array(
-        position.count * 3
-    );
-
-
-const normals =
-    terrainGeometry.attributes.normal;
-
-
-for (
-    let i = 0;
-    i < position.count;
-    i++
-) {
-
-    const height =
-        position.getZ(i);
-
-
-    const normalized =
-        THREE.MathUtils.clamp(
-            (
-                height + 4
-            ) / 15,
-            0,
-            1
-        );
-
-
-    const upward =
-        normals.getZ(i);
-
-
-    let r;
-    let g;
-    let b;
-
-
-    /* ==============================
-       VALLEY
-    ============================== */
-
-    if (
-        normalized < 0.20
-    ) {
-
-        r = 0.08;
-        g = 0.14;
-        b = 0.09;
-
-    }
-
-
-    /* ==============================
-       LOWER ROCK
-    ============================== */
-
-    else if (
-        normalized < 0.42
-    ) {
-
-        const t =
-            (
-                normalized -
-                0.20
-            ) / 0.22;
-
-
-        r =
-            THREE.MathUtils.lerp(
-                0.08,
-                0.20,
-                t
-            );
-
-        g =
-            THREE.MathUtils.lerp(
-                0.14,
-                0.19,
-                t
-            );
-
-        b =
-            THREE.MathUtils.lerp(
-                0.09,
-                0.18,
-                t
-            );
-
-    }
-
-
-    /* ==============================
-       ROCK
-    ============================== */
-
-    else if (
-        normalized < 0.68
-    ) {
-
-        const t =
-            (
-                normalized -
-                0.42
-            ) / 0.26;
-
-
-        r =
-            THREE.MathUtils.lerp(
-                0.20,
-                0.34,
-                t
-            );
-
-        g =
-            THREE.MathUtils.lerp(
-                0.19,
-                0.32,
-                t
-            );
-
-        b =
-            THREE.MathUtils.lerp(
-                0.18,
-                0.34,
-                t
-            );
-
-    }
-
-
-    /* ==============================
-       SNOW
-    ============================== */
-
-    else {
-
-        const snow =
-            THREE.MathUtils.clamp(
-                (
-                    normalized -
-                    0.68
-                ) / 0.25,
-                0,
-                1
-            );
-
-
-        const slope =
-            THREE.MathUtils.clamp(
-                upward,
-                0,
-                1
-            );
-
-
-        const snowAmount =
-            snow *
-            (
-                0.45 +
-                slope * 0.55
-            );
-
-
-        r =
-            THREE.MathUtils.lerp(
-                0.34,
-                0.94,
-                snowAmount
-            );
-
-        g =
-            THREE.MathUtils.lerp(
-                0.36,
-                0.96,
-                snowAmount
-            );
-
-        b =
-            THREE.MathUtils.lerp(
-                0.36,
-                0.98,
-                snowAmount
-            );
-
-    }
-
-
-    /*
-     * Small natural color variation
-     */
-
-    const variation =
-        valueNoise(
-            position.getX(i) * 0.25,
-            position.getY(i) * 0.25
-        ) *
-        0.025;
-
-
-    r += variation;
-    g += variation;
-    b += variation;
-
-
-    colors[
-        i * 3
-    ] = THREE.MathUtils.clamp(
-        r,
-        0,
-        1
-    );
-
-
-    colors[
-        i * 3 + 1
-    ] = THREE.MathUtils.clamp(
-        g,
-        0,
-        1
-    );
-
-
-    colors[
-        i * 3 + 2
-    ] = THREE.MathUtils.clamp(
-        b,
-        0,
-        1
-    );
-
-}
-
-
-terrainGeometry.setAttribute(
-    "color",
-    new THREE.BufferAttribute(
-        colors,
-        3
     )
 );
 
 
 /* =========================================================
-   ROTATE TERRAIN
+   SEEDED RANDOM
 ========================================================= */
 
-terrainGeometry.rotateX(
-    -Math.PI / 2
+function randomNoise(
+    x,
+    z
+) {
+
+    return (
+        Math.sin(
+            x * 12.9898 +
+            z * 78.233
+        ) *
+        43758.5453
+    ) % 1;
+
+}
+
+
+/* =========================================================
+   SMOOTH NOISE
+========================================================= */
+
+function smoothNoise(
+    x,
+    z
+) {
+
+    const ix =
+        Math.floor(x);
+
+    const iz =
+        Math.floor(z);
+
+
+    const fx =
+        x - ix;
+
+    const fz =
+        z - iz;
+
+
+    const a =
+        Math.sin(
+            ix * 127.1 +
+            iz * 311.7
+        ) *
+        43758.5453;
+
+
+    const b =
+        Math.sin(
+            (ix + 1) * 127.1 +
+            iz * 311.7
+        ) *
+        43758.5453;
+
+
+    const c =
+        Math.sin(
+            ix * 127.1 +
+            (iz + 1) * 311.7
+        ) *
+        43758.5453;
+
+
+    const d =
+        Math.sin(
+            (ix + 1) * 127.1 +
+            (iz + 1) * 311.7
+        ) *
+        43758.5453;
+
+
+    const va =
+        a - Math.floor(a);
+
+    const vb =
+        b - Math.floor(b);
+
+    const vc =
+        c - Math.floor(c);
+
+    const vd =
+        d - Math.floor(d);
+
+
+    const ux =
+        fx * fx *
+        (3 - 2 * fx);
+
+    const uz =
+        fz * fz *
+        (3 - 2 * fz);
+
+
+    const ab =
+        THREE.MathUtils.lerp(
+            va,
+            vb,
+            ux
+        );
+
+
+    const cd =
+        THREE.MathUtils.lerp(
+            vc,
+            vd,
+            ux
+        );
+
+
+    return THREE.MathUtils.lerp(
+        ab,
+        cd,
+        uz
+    );
+
+}
+
+
+/* =========================================================
+   TERRAIN HEIGHT
+========================================================= */
+
+function mountainHeight(
+    x,
+    z
+) {
+
+    /*
+     * Large mountain masses
+     */
+
+    const large =
+        smoothNoise(
+            x * 0.025,
+            z * 0.025
+        );
+
+
+    /*
+     * Medium ridges
+     */
+
+    const medium =
+        smoothNoise(
+            x * 0.060,
+            z * 0.060
+        );
+
+
+    /*
+     * Fine rock detail
+     */
+
+    const fine =
+        smoothNoise(
+            x * 0.16,
+            z * 0.16
+        );
+
+
+    /*
+     * Long Himalayan ridges
+     */
+
+    const ridgeWave =
+        Math.sin(
+            x * 0.075 +
+            z * 0.022
+        );
+
+
+    const ridge =
+        Math.pow(
+            Math.abs(
+                ridgeWave
+            ),
+            1.8
+        );
+
+
+    /*
+     * Main mountain elevation
+     */
+
+    let h =
+        large * 4.5;
+
+
+    h +=
+        medium * 5.5;
+
+
+    h +=
+        ridge * 10;
+
+
+    h +=
+        fine * 1.2;
+
+
+    /*
+     * Create valleys
+     */
+
+    const valley =
+        Math.sin(
+            z * 0.055
+        ) *
+        Math.sin(
+            x * 0.035
+        );
+
+
+    h +=
+        valley * 2.0;
+
+
+    /*
+     * Make the centre slightly lower
+     * to create a valley through which
+     * our road can travel.
+     */
+
+    const valleyMask =
+        Math.exp(
+            -Math.pow(
+                x / 8,
+                2
+            )
+        );
+
+
+    h -=
+        valleyMask *
+        5.0;
+
+
+    return h - 5;
+
+}
+
+
+/* =========================================================
+   CONTINUOUS TERRAIN
+========================================================= */
+
+const SIZE =
+    110;
+
+
+const SEGMENTS =
+    180;
+
+
+const vertices = [];
+
+
+const indices = [];
+
+
+const uvs = [];
+
+
+for (
+    let z = 0;
+    z <= SEGMENTS;
+    z++
+) {
+
+    for (
+        let x = 0;
+        x <= SEGMENTS;
+        x++
+    ) {
+
+        const px =
+            (
+                x /
+                SEGMENTS -
+                0.5
+            ) * SIZE;
+
+
+        const pz =
+            (
+                z /
+                SEGMENTS -
+                0.5
+            ) * SIZE;
+
+
+        const py =
+            mountainHeight(
+                px,
+                pz
+            );
+
+
+        vertices.push(
+            px,
+            py,
+            pz
+        );
+
+
+        uvs.push(
+            x / SEGMENTS,
+            z / SEGMENTS
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   TERRAIN TRIANGLES
+========================================================= */
+
+for (
+    let z = 0;
+    z < SEGMENTS;
+    z++
+) {
+
+    for (
+        let x = 0;
+        x < SEGMENTS;
+        x++
+    ) {
+
+        const a =
+            z *
+            (SEGMENTS + 1) +
+            x;
+
+
+        const b =
+            a + 1;
+
+
+        const c =
+            a +
+            (SEGMENTS + 1);
+
+
+        const d =
+            c + 1;
+
+
+        /*
+         * Alternate diagonal directions
+         * to reduce visible patterns.
+         */
+
+        if (
+            (x + z) % 2 === 0
+        ) {
+
+            indices.push(
+                a,
+                c,
+                b,
+
+                b,
+                c,
+                d
+            );
+
+        } else {
+
+            indices.push(
+                a,
+                c,
+                d,
+
+                a,
+                d,
+                b
+            );
+
+        }
+
+    }
+
+}
+
+
+/* =========================================================
+   BUILD GEOMETRY
+========================================================= */
+
+const terrainGeometry =
+    new THREE.BufferGeometry();
+
+
+terrainGeometry.setAttribute(
+    "position",
+
+    new THREE.Float32BufferAttribute(
+        vertices,
+        3
+    )
 );
+
+
+terrainGeometry.setAttribute(
+    "uv",
+
+    new THREE.Float32BufferAttribute(
+        uvs,
+        2
+    )
+);
+
+
+terrainGeometry.setIndex(
+    indices
+);
+
+
+terrainGeometry.computeVertexNormals();
 
 
 /* =========================================================
@@ -915,19 +704,172 @@ terrainGeometry.rotateX(
 ========================================================= */
 
 const terrainMaterial =
-    new THREE.MeshStandardMaterial({
+    new THREE.ShaderMaterial({
 
-        vertexColors:
-            true,
+        uniforms: {
 
-        roughness:
-            0.94,
+            snowLine:
+            {
+                value: 9.0
+            },
 
-        metalness:
-            0.01,
+            snowColor:
+            {
+                value:
+                    new THREE.Color(
+                        0xe9eeee
+                    )
+            },
 
-        flatShading:
-            false
+            rockColor:
+            {
+                value:
+                    new THREE.Color(
+                        0x4a5558
+                    )
+            },
+
+            valleyColor:
+            {
+                value:
+                    new THREE.Color(
+                        0x26352c
+                    )
+            }
+
+        },
+
+
+        vertexShader: `
+
+            varying vec3 vWorldPosition;
+            varying vec3 vNormal;
+
+            void main() {
+
+                vNormal =
+                    normalize(
+                        normalMatrix *
+                        normal
+                    );
+
+                vec4 world =
+                    modelMatrix *
+                    vec4(
+                        position,
+                        1.0
+                    );
+
+                vWorldPosition =
+                    world.xyz;
+
+                gl_Position =
+                    projectionMatrix *
+                    modelViewMatrix *
+                    vec4(
+                        position,
+                        1.0
+                    );
+
+            }
+
+        `,
+
+
+        fragmentShader: `
+
+            uniform float snowLine;
+
+            uniform vec3 snowColor;
+            uniform vec3 rockColor;
+            uniform vec3 valleyColor;
+
+            varying vec3 vWorldPosition;
+            varying vec3 vNormal;
+
+
+            void main() {
+
+                float height =
+                    vWorldPosition.y;
+
+
+                /*
+                 * Mountain snow
+                 */
+
+                float snow =
+                    smoothstep(
+                        snowLine - 2.0,
+                        snowLine + 3.0,
+                        height
+                    );
+
+
+                /*
+                 * Valley greenery
+                 */
+
+                float valley =
+                    1.0 -
+                    smoothstep(
+                        0.0,
+                        6.0,
+                        height
+                    );
+
+
+                vec3 color =
+                    mix(
+                        rockColor,
+                        snowColor,
+                        snow
+                    );
+
+
+                color =
+                    mix(
+                        color,
+                        valleyColor,
+                        valley * 0.65
+                    );
+
+
+                /*
+                 * Lighting
+                 */
+
+                float light =
+                    dot(
+                        normalize(vNormal),
+                        normalize(
+                            vec3(
+                                -0.5,
+                                1.0,
+                                0.35
+                            )
+                        )
+                    );
+
+
+                light =
+                    0.55 +
+                    light * 0.45;
+
+
+                color *=
+                    light;
+
+
+                gl_FragColor =
+                    vec4(
+                        color,
+                        1.0
+                    );
+
+            }
+
+        `
 
     });
 
@@ -941,115 +883,13 @@ const terrain =
 
 terrain.position.set(
     0,
-    -1.8,
-    -15
+    -2,
+    -16
 );
 
 
 scene.add(
     terrain
-);
-
-
-/* =========================================================
-   FAR MOUNTAIN ATMOSPHERE
-========================================================= */
-
-const farGeometry =
-    new THREE.PlaneGeometry(
-        140,
-        40,
-        100,
-        35
-    );
-
-
-const farPosition =
-    farGeometry.attributes.position;
-
-
-for (
-    let i = 0;
-    i < farPosition.count;
-    i++
-) {
-
-    const x =
-        farPosition.getX(i);
-
-    const y =
-        farPosition.getY(i);
-
-
-    const ridge =
-        Math.abs(
-            Math.sin(
-                x * 0.08
-            )
-        );
-
-
-    const n =
-        terrainNoise(
-            x * 0.5,
-            y
-        );
-
-
-    const h =
-        ridge * 15 +
-        n * 3;
-
-
-    farPosition.setZ(
-        i,
-        h
-    );
-
-}
-
-
-farGeometry.computeVertexNormals();
-
-
-const farMaterial =
-    new THREE.MeshStandardMaterial({
-
-        color:
-            0x52636c,
-
-        roughness:
-            1,
-
-        transparent:
-            true,
-
-        opacity:
-            0.68
-
-    });
-
-
-const farMountains =
-    new THREE.Mesh(
-        farGeometry,
-        farMaterial
-    );
-
-
-farMountains.rotation.x =
-    -Math.PI / 2;
-
-
-farMountains.position.set(
-    0,
-    0,
-    -48
-);
-
-
-scene.add(
-    farMountains
 );
 
 
@@ -1061,39 +901,39 @@ const roadCurve =
     new THREE.CatmullRomCurve3([
 
         new THREE.Vector3(
-            -4,
-            -0.45,
-            18
+            -2.5,
+            0.0,
+            20
         ),
 
         new THREE.Vector3(
-            2,
-            -0.35,
-            11
+            2.0,
+            0.0,
+            13
         ),
 
         new THREE.Vector3(
-            -3,
-            -0.20,
-            5
+            -1.5,
+            0.0,
+            6
         ),
 
         new THREE.Vector3(
-            1,
-            0.00,
+            2.2,
+            0.0,
             -2
         ),
 
         new THREE.Vector3(
-            -1,
-            0.20,
+            -2,
+            0.0,
             -10
         ),
 
         new THREE.Vector3(
-            3,
-            0.35,
-            -18
+            1.0,
+            0.0,
+            -20
         )
 
     ]);
@@ -1103,7 +943,7 @@ const roadGeometry =
     new THREE.TubeGeometry(
         roadCurve,
         120,
-        0.48,
+        0.42,
         10,
         false
     );
@@ -1113,13 +953,10 @@ const roadMaterial =
     new THREE.MeshStandardMaterial({
 
         color:
-            0x262a2b,
+            0x26292a,
 
         roughness:
-            0.9,
-
-        metalness:
-            0.02
+            0.88
 
     });
 
@@ -1130,13 +967,18 @@ const road =
         roadMaterial
     );
 
+
+road.position.y =
+    0.15;
+
+
 scene.add(
     road
 );
 
 
 /* =========================================================
-   ROAD CENTER LINE
+   ROAD LINE
 ========================================================= */
 
 const roadPoints =
@@ -1145,14 +987,14 @@ const roadPoints =
     );
 
 
-const roadLineGeometry =
+const lineGeometry =
     new THREE.BufferGeometry()
         .setFromPoints(
             roadPoints
         );
 
 
-const roadLineMaterial =
+const lineMaterial =
     new THREE.LineBasicMaterial({
 
         color:
@@ -1169,8 +1011,8 @@ const roadLineMaterial =
 
 const roadLine =
     new THREE.Line(
-        roadLineGeometry,
-        roadLineMaterial
+        lineGeometry,
+        lineMaterial
     );
 
 
@@ -1187,11 +1029,12 @@ scene.add(
    CLOUDS
 ========================================================= */
 
-const clouds =
+const cloudGroup =
     new THREE.Group();
 
+
 scene.add(
-    clouds
+    cloudGroup
 );
 
 
@@ -1205,7 +1048,7 @@ const cloudMaterial =
             true,
 
         opacity:
-            0.095,
+            0.10,
 
         depthWrite:
             false
@@ -1215,31 +1058,32 @@ const cloudMaterial =
 
 for (
     let i = 0;
-    i < 28;
+    i < 22;
     i++
 ) {
 
     const cloud =
         new THREE.Mesh(
+
             new THREE.SphereGeometry(
                 2 +
                 Math.random() * 3,
                 20,
                 12
             ),
+
             cloudMaterial
+
         );
 
 
     cloud.scale.set(
-        2.5 +
-        Math.random() * 3,
-
-        0.35 +
-        Math.random() * 0.35,
-
-        1.0 +
-        Math.random() * 1.5
+        3 +
+        Math.random() * 2,
+        0.4 +
+        Math.random() * 0.3,
+        1.2 +
+        Math.random()
     );
 
 
@@ -1250,16 +1094,16 @@ for (
             0.5
         ) * 80,
 
-        7 +
-        Math.random() * 12,
+        8 +
+        Math.random() * 10,
 
-        -15 -
-        Math.random() * 50
+        -30 -
+        Math.random() * 40
 
     );
 
 
-    clouds.add(
+    cloudGroup.add(
         cloud
     );
 
@@ -1267,16 +1111,16 @@ for (
 
 
 /* =========================================================
-   SNOW PARTICLES
+   SNOW
 ========================================================= */
 
 const snowCount =
-    window.innerWidth >= 1200
-        ? 2200
-        : 1000;
+    window.innerWidth > 1100
+        ? 1800
+        : 800;
 
 
-const snowPositions =
+const snowArray =
     new Float32Array(
         snowCount * 3
     );
@@ -1288,22 +1132,22 @@ for (
     i += 3
 ) {
 
-    snowPositions[i] =
+    snowArray[i] =
         (
             Math.random() -
             0.5
-        ) * 70;
+        ) * 65;
 
 
-    snowPositions[i + 1] =
+    snowArray[i + 1] =
         Math.random() * 30;
 
 
-    snowPositions[i + 2] =
+    snowArray[i + 2] =
         (
             Math.random() -
             0.5
-        ) * 70;
+        ) * 65;
 
 }
 
@@ -1316,7 +1160,7 @@ snowGeometry.setAttribute(
     "position",
 
     new THREE.BufferAttribute(
-        snowPositions,
+        snowArray,
         3
     )
 );
@@ -1343,7 +1187,7 @@ const snowMaterial =
     });
 
 
-const snow =
+const snowfall =
     new THREE.Points(
         snowGeometry,
         snowMaterial
@@ -1351,16 +1195,16 @@ const snow =
 
 
 scene.add(
-    snow
+    snowfall
 );
 
 
 /* =========================================================
-   CAMERA INTERACTION
+   MOUSE
 ========================================================= */
 
-let pointerX = 0;
-let pointerY = 0;
+let mouseX = 0;
+let mouseY = 0;
 
 let smoothX = 0;
 let smoothY = 0;
@@ -1370,7 +1214,7 @@ window.addEventListener(
     "pointermove",
     event => {
 
-        pointerX =
+        mouseX =
             (
                 event.clientX /
                 window.innerWidth -
@@ -1378,7 +1222,7 @@ window.addEventListener(
             ) * 2;
 
 
-        pointerY =
+        mouseY =
             (
                 event.clientY /
                 window.innerHeight -
@@ -1408,76 +1252,72 @@ function animate() {
         clock.getElapsedTime();
 
 
-    /* -----------------------------------------------
-       SMOOTH POINTER
-    ----------------------------------------------- */
-
     smoothX +=
         (
-            pointerX -
+            mouseX -
             smoothX
         ) * 0.025;
 
 
     smoothY +=
         (
-            pointerY -
+            mouseY -
             smoothY
         ) * 0.025;
 
 
-    /* -----------------------------------------------
-       CINEMATIC CAMERA
-    ----------------------------------------------- */
+    /*
+     * Camera
+     */
 
     camera.position.x =
-        smoothX * 1.8;
+        smoothX * 1.5;
 
 
     camera.position.y =
         5.0 -
-        smoothY * 0.8 +
+        smoothY * 0.6 +
         Math.sin(
             time * 0.15
-        ) * 0.12;
+        ) * 0.10;
 
 
     camera.position.z =
-        24 -
+        22 -
         Math.sin(
             time * 0.08
-        ) * 2;
+        ) * 1.5;
 
 
     camera.lookAt(
         0,
         5,
-        -18
+        -15
     );
 
 
-    /* -----------------------------------------------
-       CLOUD MOTION
-    ----------------------------------------------- */
+    /*
+     * Clouds
+     */
 
-    clouds.position.x =
+    cloudGroup.position.x =
         Math.sin(
-            time * 0.015
+            time * 0.012
         ) * 2;
 
 
-    clouds.position.z =
+    cloudGroup.position.z =
         Math.cos(
-            time * 0.01
+            time * 0.009
         ) * 1.5;
 
 
-    /* -----------------------------------------------
-       SNOW MOTION
-    ----------------------------------------------- */
+    /*
+     * Snow
+     */
 
-    const particles =
-        snow.geometry
+    const p =
+        snowfall.geometry
             .attributes
             .position;
 
@@ -1493,13 +1333,13 @@ function animate() {
 
 
         let x =
-            particles.getX(index);
+            p.getX(index);
 
         let y =
-            particles.getY(index);
+            p.getY(index);
 
         let z =
-            particles.getZ(index);
+            p.getZ(index);
 
 
         y -= 0.016;
@@ -1507,35 +1347,33 @@ function animate() {
 
         x +=
             Math.sin(
-                time * 0.6 +
+                time * 0.5 +
                 i
             ) * 0.002;
 
 
         if (
-            y < -3
+            y < -2
         ) {
 
             y = 28;
-
 
             x =
                 (
                     Math.random() -
                     0.5
-                ) * 70;
-
+                ) * 65;
 
             z =
                 (
                     Math.random() -
                     0.5
-                ) * 70;
+                ) * 65;
 
         }
 
 
-        particles.setXYZ(
+        p.setXYZ(
             index,
             x,
             y,
@@ -1545,13 +1383,9 @@ function animate() {
     }
 
 
-    particles.needsUpdate =
+    p.needsUpdate =
         true;
 
-
-    /* -----------------------------------------------
-       RENDER
-    ----------------------------------------------- */
 
     renderer.render(
         scene,
